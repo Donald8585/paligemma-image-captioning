@@ -4,46 +4,52 @@ from peft import PeftModel
 import torch
 from PIL import Image
 import os
+import spaces
 
 print("🚀 Loading PaliGemma model...")
 
 # Get HuggingFace token from environment
 hf_token = os.getenv("HF_TOKEN")
 
-# Load base model with authentication
+# Load base model WITHOUT device_map (Zero GPU handles it!)
 model = PaliGemmaForConditionalGeneration.from_pretrained(
     "google/paligemma-3b-pt-224",
     torch_dtype=torch.bfloat16,
-    device_map="auto",
-    token=hf_token  # ← Add this!
+    # device_map="auto",  ← REMOVE THIS LINE!
+    token=hf_token
 )
 
 # Load fine-tuned LoRA weights
 model = PeftModel.from_pretrained(
     model, 
     "Donald8585/paligemma-caption-finetuned",
-    token=hf_token  # ← Add this too!
+    token=hf_token
 )
 
 # Load processor
 processor = PaliGemmaProcessor.from_pretrained(
     "google/paligemma-3b-pt-224",
-    token=hf_token  # ← And here!
+    token=hf_token
 )
 
 print("✅ Model loaded successfully!")
 
+@spaces.GPU(duration=60)  # Give it 60 seconds for inference
 def generate_caption(image):
     """Generate caption for uploaded image"""
     if image is None:
         return "Please upload an image!"
+    
+    # Move model to GPU inside the decorated function
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
     
     # Process image
     inputs = processor(
         text="caption en",
         images=image,
         return_tensors="pt"
-    ).to(model.device)
+    ).to(device)
     
     # Generate caption
     with torch.no_grad():
