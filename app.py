@@ -3,21 +3,33 @@ from transformers import PaliGemmaForConditionalGeneration, PaliGemmaProcessor
 from peft import PeftModel
 import torch
 from PIL import Image
+import os
 
 print("🚀 Loading PaliGemma model...")
 
-# Load base model
+# Get HuggingFace token from environment
+hf_token = os.getenv("HF_TOKEN")
+
+# Load base model with authentication
 model = PaliGemmaForConditionalGeneration.from_pretrained(
     "google/paligemma-3b-pt-224",
     torch_dtype=torch.bfloat16,
-    device_map="auto"
+    device_map="auto",
+    token=hf_token  # ← Add this!
 )
 
 # Load fine-tuned LoRA weights
-model = PeftModel.from_pretrained(model, "Donald8585/paligemma-caption-finetuned")
+model = PeftModel.from_pretrained(
+    model, 
+    "Donald8585/paligemma-caption-finetuned",
+    token=hf_token  # ← Add this too!
+)
 
 # Load processor
-processor = PaliGemmaProcessor.from_pretrained("google/paligemma-3b-pt-224")
+processor = PaliGemmaProcessor.from_pretrained(
+    "google/paligemma-3b-pt-224",
+    token=hf_token  # ← And here!
+)
 
 print("✅ Model loaded successfully!")
 
