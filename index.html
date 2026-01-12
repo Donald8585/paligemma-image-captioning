@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: Arial; 
+            padding: 20px; 
+            text-align: center;
+            background: #f5f5f5;
+        }
+        input[type="file"] { 
+            margin: 20px 0; 
+            padding: 10px;
+        }
+        img { 
+            max-width: 400px; 
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        button {
+            padding: 10px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #5568d3; }
+        #result { 
+            margin-top: 20px; 
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>🎨 Image Captioning</h2>
+    <input type="file" id="img" accept="image/*">
+    <br><img id="preview" style="display:none">
+    <br><button id="btn" style="display:none">Generate Caption</button>
+    <div id="result"></div>
+
+    <script>
+        const API = "https://fiverrkroft--paligemma-caption-web.modal.run/generate";
+        
+        document.getElementById('img').onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('preview').src = event.target.result;
+                    document.getElementById('preview').style.display = 'block';
+                    document.getElementById('btn').style.display = 'inline-block';
+                    window.uploadedFile = file;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        document.getElementById('btn').onclick = async function() {
+            document.getElementById('result').innerHTML = 'Loading...';
+            
+            const formData = new FormData();
+            formData.append('file', window.uploadedFile);
+
+            try {
+                const res = await fetch(API, { method: 'POST', body: formData });
+                const data = await res.json();
+                document.getElementById('result').innerHTML = '<strong>Caption:</strong> ' + data.caption;
+            } catch (err) {
+                document.getElementById('result').innerHTML = 'Error: ' + err.message;
+            }
+        };
+    </script>
+</body>
+</html>
