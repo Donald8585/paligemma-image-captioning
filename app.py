@@ -4,29 +4,29 @@ from peft import PeftModel
 import torch
 from PIL import Image
 import os
-import spaces
 
-print("🚀 Loading PaliGemma model...")
+print("🚀 Loading PaliGemma model on CPU...")
 
 # Get HuggingFace token from environment
 hf_token = os.getenv("HF_TOKEN")
 
-# Load base model on CPU first
+# Load base model on CPU
 model = PaliGemmaForConditionalGeneration.from_pretrained(
     "google/paligemma-3b-pt-224",
-    torch_dtype=torch.bfloat16,
+    torch_dtype=torch.float32,  # Changed from bfloat16 for CPU compatibility
     token=hf_token
 )
 
 # Load fine-tuned LoRA weights
 model = PeftModel.from_pretrained(
-    model, 
+    model,
     "Donald8585/paligemma-caption-finetuned",
     token=hf_token
 )
 
-# Move model to CUDA (Zero GPU manages this!)
-model.to('cuda')
+# Keep on CPU (or explicitly set)
+model.to('cpu')
+model.eval()  # Set to evaluation mode
 
 # Load processor
 processor = PaliGemmaProcessor.from_pretrained(
@@ -34,25 +34,24 @@ processor = PaliGemmaProcessor.from_pretrained(
     token=hf_token
 )
 
-print("✅ Model loaded successfully!")
+print("✅ Model loaded successfully on CPU!")
 
-@spaces.GPU(duration=120)
-def generate_caption(image):
+def generate_caption(image):  # Removed @spaces.GPU decorator
     """Generate caption for uploaded image"""
     if image is None:
         return "Please upload an image!"
     
     try:
-        # Convert image to RGB (handles GIFs, grayscale, RGBA)
+        # Convert image to RGB
         if isinstance(image, Image.Image):
             image = image.convert('RGB')
         
-        # Process image
+        # Process image (keep on CPU)
         inputs = processor(
             text="caption en",
             images=image,
             return_tensors="pt"
-        ).to('cuda')
+        )  # No .to('cuda')
         
         # Generate caption
         with torch.no_grad():
@@ -60,8 +59,6 @@ def generate_caption(image):
         
         # Decode caption
         caption = processor.decode(outputs[0], skip_special_tokens=True)
-        
-        # Remove the prompt from output
         caption = caption.replace("caption en", "").strip()
         
         return caption
@@ -69,7 +66,7 @@ def generate_caption(image):
     except Exception as e:
         return f"Error: {str(e)}"
 
-# Create Gradio interface
+# [Rest of your Gradio interface stays the same]
 with gr.Blocks(title="PaliGemma Image Captioning") as demo:
     gr.Markdown("# 🎨 PaliGemma Image Captioning")
     gr.Markdown(
@@ -80,6 +77,8 @@ with gr.Blocks(title="PaliGemma Image Captioning") as demo:
         **Model:** [Donald8585/paligemma-caption-finetuned](https://huggingface.co/Donald8585/paligemma-caption-finetuned)
         
         ✨ **Supports:** PNG, JPG, JPEG, GIF, WEBP
+        
+        ⚠️ **Running on CPU** - Inference takes ~10-15 seconds
         """
     )
     
@@ -91,7 +90,6 @@ with gr.Blocks(title="PaliGemma Image Captioning") as demo:
         with gr.Column():
             caption_output = gr.Textbox(label="Generated Caption", lines=3)
     
-    # Examples
     gr.Examples(
         examples=[
             ["https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/transformers/tasks/car.jpg"],
