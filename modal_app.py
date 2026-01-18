@@ -90,8 +90,11 @@ class PaliGemmaModel:
         
         # Generate caption
         with torch.no_grad():
-            outputs = self.model.generate(**inputs, max_new_tokens=100)  # Increased tokens
-        
+            outputs = self.model.generate(
+            **inputs, 
+            max_new_tokens=50,    # ✅ Limit output length
+            do_sample=False,      # ✅ Deterministic (no randomness)
+            )
         # Decode caption
         caption = self.processor.decode(outputs[0], skip_special_tokens=True)
         caption = caption.replace("caption", "").strip()
