@@ -1,78 +1,296 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fashion Caption AI | PaliGemma</title>
     <style>
-        body { 
-            font-family: Arial; 
-            padding: 20px; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Source Sans Pro', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: #1a1a1a;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
             text-align: center;
-            background: #f5f5f5;
         }
-        input[type="file"] { 
-            margin: 20px 0; 
-            padding: 10px;
-        }
-        img { 
-            max-width: 400px; 
-            margin: 20px 0;
-            border-radius: 8px;
-        }
-        button {
-            padding: 10px 30px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
             font-size: 16px;
         }
-        button:hover { background: #5568d3; }
-        #result { 
-            margin-top: 20px; 
-            padding: 15px;
-            background: white;
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.active {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-text {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        #preview {
+            max-width: 100%;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
             border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            display: none;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result-card {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .result-label {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .result-text {
+            color: #1a1a1a;
+            font-size: 20px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <h2>🎨 Image Captioning</h2>
-    <input type="file" id="img" accept="image/*">
-    <br><img id="preview" style="display:none">
-    <br><button id="btn" style="display:none">Generate Caption</button>
-    <div id="result"></div>
+    <div class="container">
+        <h1>👗 Fashion Caption AI</h1>
+        <p class="subtitle">Powered by PaliGemma Fine-tuned Model</p>
+
+        <label for="img">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">Click to upload fashion image</div>
+                <div class="upload-hint">JPG, PNG, or GIF</div>
+            </div>
+        </label>
+        <input type="file" id="img" accept="image/*">
+
+        <img id="preview" alt="Preview">
+
+        <button id="btn">✨ Generate Fashion Caption</button>
+
+        <div class="result-card" id="resultCard">
+            <div class="result-label">Generated Caption</div>
+            <div class="result-text" id="result"></div>
+        </div>
+
+        <div class="footer">
+            Made with 💜 by <a href="https://alfredso.com" target="_blank">Alfred So</a>
+        </div>
+    </div>
 
     <script>
-        const API = "https://fiverrkroft--paligemma-caption-web.modal.run/generate";
+        const API = "https://fiverrkroft--paligemma-fashion-caption-web.modal.run/generate";
         
-        document.getElementById('img').onchange = function(e) {
+        const imgInput = document.getElementById('img');
+        const preview = document.getElementById('preview');
+        const btn = document.getElementById('btn');
+        const resultCard = document.getElementById('resultCard');
+        const result = document.getElementById('result');
+        const uploadArea = document.getElementById('uploadArea');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('active');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('active');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('active');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageUpload(file);
+            }
+        });
+
+        imgInput.onchange = function(e) {
             const file = e.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    document.getElementById('preview').src = event.target.result;
-                    document.getElementById('preview').style.display = 'block';
-                    document.getElementById('btn').style.display = 'inline-block';
-                    window.uploadedFile = file;
-                };
-                reader.readAsDataURL(file);
+                handleImageUpload(file);
             }
         };
 
-        document.getElementById('btn').onclick = async function() {
-            document.getElementById('result').innerHTML = 'Loading...';
+        function handleImageUpload(file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                preview.src = event.target.result;
+                preview.style.display = 'block';
+                btn.style.display = 'block';
+                resultCard.style.display = 'none';
+                window.uploadedFile = file;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        btn.onclick = async function() {
+            btn.disabled = true;
+            result.innerHTML = '<span class="loading"></span>Analyzing fashion image...';
+            resultCard.style.display = 'block';
             
             const formData = new FormData();
             formData.append('file', window.uploadedFile);
 
             try {
-                const res = await fetch(API, { method: 'POST', body: formData });
+                const res = await fetch(API, { 
+                    method: 'POST', 
+                    body: formData 
+                });
                 const data = await res.json();
-                document.getElementById('result').innerHTML = '<strong>Caption:</strong> ' + data.caption;
+                
+                if (data.caption) {
+                    result.innerHTML = data.caption;
+                } else {
+                    result.innerHTML = '❌ Error: ' + (data.error || 'Unknown error');
+                }
             } catch (err) {
-                document.getElementById('result').innerHTML = 'Error: ' + err.message;
+                result.innerHTML = '❌ Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
             }
         };
     </script>

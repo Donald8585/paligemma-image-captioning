@@ -2,7 +2,7 @@ import modal
 from pathlib import Path
 
 # Create Modal app
-app = modal.App("paligemma-caption")
+app = modal.App("paligemma-fashion-caption")
 
 # Create persistent volume for model cache
 model_volume = modal.Volume.from_name("paligemma-models", create_if_missing=True)
@@ -17,8 +17,8 @@ image = (
         "torch>=2.0.0",
         "Pillow>=10.0.0",
         "accelerate>=0.27.0",
-        "fastapi",           # ADD THIS
-        "python-multipart",  # ADD THIS (needed for file uploads)
+        "fastapi",
+        "python-multipart",
     )
 )
 
@@ -81,20 +81,20 @@ class PaliGemmaModel:
         # Convert bytes to PIL Image
         image = Image.open(BytesIO(image_bytes)).convert('RGB')
         
-        # Process image
+        # Process image - UPDATED PROMPT!
         inputs = self.processor(
-            text="caption en",
+            text="caption",  # ✅ Changed from "caption en"
             images=image,
             return_tensors="pt"
         ).to('cuda')
         
         # Generate caption
         with torch.no_grad():
-            outputs = self.model.generate(**inputs, max_new_tokens=20)
+            outputs = self.model.generate(**inputs, max_new_tokens=100)  # Increased tokens
         
         # Decode caption
         caption = self.processor.decode(outputs[0], skip_special_tokens=True)
-        caption = caption.replace("caption en", "").strip()
+        caption = caption.replace("caption", "").strip()
         
         return caption
 
@@ -112,27 +112,23 @@ def web():
     # Enable CORS for cross-origin requests
     web_app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Allow all origins (GitHub Pages, etc.)
+        allow_origins=["*"],
         allow_credentials=True,
-        allow_methods=["*"],  # Allow all HTTP methods
-        allow_headers=["*"],  # Allow all headers
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     
     @web_app.get("/")
     async def root():
-        return {"message": "PaliGemma Caption API - Use POST /generate with image file"}
+        return {"message": "PaliGemma Fashion Caption API", "model": "paligemma-caption-finetuned"}
     
     @web_app.post("/generate")
     async def generate_caption_endpoint(file: UploadFile = File(...)):
         """Accept image upload and return caption"""
         try:
-            # Read uploaded file
             image_bytes = await file.read()
-            
-            # Call model
             model = PaliGemmaModel()
             caption = model.generate_caption.remote(image_bytes)
-            
             return JSONResponse({"caption": caption})
         except Exception as e:
             return JSONResponse({"error": str(e)}, status_code=500)
@@ -141,14 +137,10 @@ def web():
     async def generate_caption_base64(data: dict):
         """Accept base64 image and return caption"""
         try:
-            # Decode base64
             image_base64 = data.get("image_base64", "")
             image_bytes = base64.b64decode(image_base64)
-            
-            # Call model
             model = PaliGemmaModel()
             caption = model.generate_caption.remote(image_bytes)
-            
             return JSONResponse({"caption": caption})
         except Exception as e:
             return JSONResponse({"error": str(e)}, status_code=500)
